@@ -72,15 +72,16 @@ contract NFTMarketplace is Homework {
         require(msg.value >= auction.minPrice, "Below min price");
         require(msg.value > auction.highestBid, "Higher bid exists");
 
-        if (auction.highestBidder != address(0)) {
-            (bool success, ) = payable(auction.highestBidder).call{
-                value: auction.highestBid
-            }("");
-            require(success, "Refund failed");
-        }
+        address prevBidder = auction.highestBidder;
+        uint256 prevBid = auction.highestBid;
 
         auction.highestBidder = msg.sender;
         auction.highestBid = msg.value;
+
+        if (prevBidder != address(0)) {
+            (bool success, ) = payable(prevBidder).call{value: prevBid}("");
+            require(success, "Refund failed");
+        }
 
         emit NewBid(_auctionId, msg.sender, msg.value);
     }
@@ -98,7 +99,8 @@ contract NFTMarketplace is Homework {
             totalFeesCollected += fee;
 
             require(
-                IERC721(auction.nftAddress).ownerOf(auction.tokenId) == address(this),
+                IERC721(auction.nftAddress).ownerOf(auction.tokenId) ==
+                    address(this),
                 "NFT not owned by contract"
             );
             IERC721(auction.nftAddress).safeTransferFrom(
@@ -112,7 +114,8 @@ contract NFTMarketplace is Homework {
             require(success, "Payment to seller failed");
         } else {
             require(
-                IERC721(auction.nftAddress).ownerOf(auction.tokenId) == address(this),
+                IERC721(auction.nftAddress).ownerOf(auction.tokenId) ==
+                    address(this),
                 "NFT not owned by contract"
             );
             IERC721(auction.nftAddress).safeTransferFrom(
