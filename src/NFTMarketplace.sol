@@ -21,6 +21,8 @@ contract NFTMarketplace is Homework {
     }
 
     mapping(uint256 => Auction) public auctions;
+    mapping(address => uint256) public pendingReturns;
+    mapping(address => uint256) public pendingSellerProceeds;
     uint256 public auctionCount;
 
     event AuctionListed(
@@ -79,8 +81,7 @@ contract NFTMarketplace is Homework {
         auction.highestBid = msg.value;
 
         if (prevBidder != address(0)) {
-            (bool success, ) = payable(prevBidder).call{value: prevBid}("");
-            require(success, "Refund failed");
+            pendingReturns[prevBidder] += prevBid;
         }
 
         emit NewBid(_auctionId, msg.sender, msg.value);
@@ -108,10 +109,7 @@ contract NFTMarketplace is Homework {
                 auction.highestBidder,
                 auction.tokenId
             );
-            (bool success, ) = payable(auction.seller).call{
-                value: sellerProceeds
-            }("");
-            require(success, "Payment to seller failed");
+            pendingSellerProceeds[auction.seller] += sellerProceeds;
         } else {
             require(
                 IERC721(auction.nftAddress).ownerOf(auction.tokenId) ==
@@ -130,6 +128,26 @@ contract NFTMarketplace is Homework {
             auction.highestBidder,
             auction.highestBid
         );
+    }
+
+    function withdrawRefund() external {
+        uint256 amount = pendingReturns[msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingReturns[msg.sender] = 0;
+
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Withdraw failed");
+    }
+
+    function withdrawSellerProceeds() external {
+        uint256 amount = pendingSellerProceeds[msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingSellerProceeds[msg.sender] = 0;
+
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Withdraw failed");
     }
 
     function withdrawFees() external {
