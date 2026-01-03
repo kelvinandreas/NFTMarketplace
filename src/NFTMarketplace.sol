@@ -101,7 +101,7 @@ contract NFTMarketplace is Homework {
                 IERC721(auction.nftAddress).ownerOf(auction.tokenId) == address(this),
                 "NFT not owned by contract"
             );
-            IERC721(auction.nftAddress).transferFrom(
+            IERC721(auction.nftAddress).safeTransferFrom(
                 address(this),
                 auction.highestBidder,
                 auction.tokenId
@@ -115,7 +115,7 @@ contract NFTMarketplace is Homework {
                 IERC721(auction.nftAddress).ownerOf(auction.tokenId) == address(this),
                 "NFT not owned by contract"
             );
-            IERC721(auction.nftAddress).transferFrom(
+            IERC721(auction.nftAddress).safeTransferFrom(
                 address(this),
                 auction.seller,
                 auction.tokenId
